@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            padding: 10px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-weight: 400;
+            font-size: 12px;
+            line-height: 16px;
+        }
+
+        #address-wrapper {
+            padding: 8px;
+            background: #FFF;
+            border-radius: 8px;
+            box-shadow: 0px 0px 2px 0px rgba(0, 0, 0, 0.12), 0px 1px 2px 0px rgba(0, 0, 0, 0.14);
+            margin-bottom: 12px;
+        }
+
+        #address-line {
+            display: flex;
+            flex-direction: row;
+            align-items: start;
+            gap: 4px;
+            margin-bottom: 8px;
+        }
+
+        #address-text {
+            color: #616161;
+            flex-grow: 1;
+        }
+
+        #cmd-copy {
+            cursor: pointer;
+        }
+
+        #address-map {
+            width: 100%;
+            height: 120px;
+            border: 0;
+        }
+
+        .link-group {
+            list-style: none;
+            padding: 0;
+            margin-block-start: 0;
+            margin-bottom: 16px;
+        }
+
+        .link-group a {
+            color: #424242;
+        }
+
+        .link-group li {
+            margin-bottom: 8px;
+            display: flex;
+            flex-direction: row;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .link-group li>img {
+            width: 16px;
+            height: 16px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Top card: address, map, copy icon -->
+    <div id="address-wrapper">
+        <div id="address-line">
+            <img src="/example1/icons/pin.svg" />
+            <div id="address-text"></div>
+            <img src="/example1/icons/copy.svg" id="cmd-copy" />
+        </div>
+        <iframe id="address-map"></iframe>
+    </div>
+
+    <!-- Google search links -->
+    <ul class="link-group">
+        <li id="link-google-company">
+            <img src="/example1/icons/google.svg" />
+            <a href="#" target="_blank">Suche nach ...</a>
+        </li>
+        <li id="link-google-route">
+            <img src="/example1/icons/google.svg" />
+            <a href="#" target="_blank">Route nach ...</a>
+        </li>
+    </ul>
+
+    <!-- LinkedIn search links -->
+    <ul class="link-group">
+        <li id="link-linkedin-contact">
+            <img src="/example1/icons/linkedin.svg" />
+            <a href="#" target="_blank">Suche Kontakt auf LinkedIn</a>
+        </li>
+        <li id="link-linkedin-company">
+            <img src="/example1/icons/linkedin.svg" />
+            <a href="#" target="_blank">Suche Firma auf LinkedIn</a>
+        </li>
+    </ul>
+</body>
+
+<script lang="javascript">
+    // ============
+    // Global setup
+    // ============
+
+    // Shared current contact instance
+    let contact = null;
+
+    /*
+     * When the contact is selected in CByX,
+     * it comes to the Insights IFrame via the "message" event.
+     */
+
+    window.addEventListener('message', (evt) => {
+        contact = evt.data.contact;
+        setupMap(contact);
+        setupSearchLinks(contact);
+    });
+
+    /*
+     * Special handler for the "copy address" button.
+     * The Insights IFrame does not have a permission to use the clipboard directly,
+     * therefore it needs to invoke the "copyText" command from CByX SDK.
+     */
+
+    handleClick('#cmd-copy', async () => {
+        const parts = getAddressParts(true);
+        sendMessage({ type: 'copyText', value: parts.join('\n') });
+    });
+
+    // =================
+    // Display functions
+    // =================
+
+    /**
+     * Configures the address and map panel.
+     */
+    function setupMap(contact) {
+        const parts = getAddressParts(false);
+        if (!parts.length) {
+            show('#address-wrapper', false);
+            return;
+        }
+
+        show('#address-wrapper', true);
+        const address = encodeURIComponent(parts.join(','));
+        document.querySelector('#address-map').src = `https://maps.google.com/maps?q=${address}&output=embed`;
+
+        setText('#address-text', getAddressParts(true).map(escapeHtml).join('<br />'));
+    }
+
+    /**
+     * Configures links to Google and LinkedIn.
+     */
+    function setupSearchLinks(contact) {
+        setupLink(
+            '#link-google-company',
+            contact.company?.name,
+            v => `https://www.google.com/search?q=${encodeURIComponent(v)}`,
+            v => `Suche nach ${v}`
+        );
+
+        setupLink(
+            '#link-google-route',
+            getAddressParts(false).join(','),
+            v => `https://www.google.com/maps/dir/${encodeURIComponent(v)}`,
+            _ => `Route nach ${contact.company.address?.city}`
+        )
+
+        setupLink(
+            '#link-linkedin-contact',
+            contact.personal?.name?.fullName,
+            v => `https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent(v)}`,
+            v => 'Suche Kontakt auf LinkedIn'
+        );
+
+        setupLink(
+            '#link-linkedin-company',
+            contact.company?.name,
+            v => `https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent(v)}`,
+            v => 'Suche Firma auf LinkedIn'
+        );
+
+        function setupLink(id, value, hrefFunc, textFunc) {
+            value = (value || '').trim();
+            if (!!value) {
+                const link = document.querySelector(`${id} > a`);
+                link.href = hrefFunc(value);
+                link.innerText = textFunc(value);
+            } else {
+                show(id, false);
+            }
+        }
+    }
+
+    /**
+     * Returns the address parts as an array of non-empty strings.
+     * Optionally includes the company as the first entry.
+     */
+    function getAddressParts(withName) {
+        const addr = contact.company?.address;
+        const parts = [
+            withName ? contact.company?.name : null,
+            addr?.street,
+            (addr?.postalCode || '') + ' ' + (addr?.city || '')
+        ];
+        return parts.map(x => (x || '').trim()).filter(x => !!x);
+    }
+
+    // =================
+    // Utility functions
+    // =================
+
+    /**
+     * Sets the contents of an element to given value.
+     */
+    function setText(id, value) {
+        document.querySelector(id).innerHTML = value;
+    }
+
+    /**
+     * Toggles the visibility of an element.
+     */
+    function show(id, state) {
+        document.querySelector(id).style.display = state ? '' : 'none';
+    }
+
+    /**
+     * Returns the value with HTML special characters encoded (safe to use in innerHTML).
+     */
+    function escapeHtml(unsafe) {
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    /**
+     * Adds a handler for click event.
+     */
+    function handleClick(id, func) {
+        document.querySelector(id).addEventListener('click', e => {
+            e.preventDefault();
+            func();
+        });
+    }
+
+    /**
+     * Invokes the CByX SDK by sending a message to the IFrame parent window.
+     */
+    function sendMessage(content) {
+        window.parent.postMessage(content, "*");
+    }
+</script>
+
+</html>
