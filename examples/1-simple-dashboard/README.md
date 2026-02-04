@@ -1,5 +1,9 @@
 # Simple Dashboard Example
 
+<p align="center">
+  <img width="418" height="390" alt="Image" src="https://github.com/user-attachments/assets/803b55b8-7e4b-493f-8d5c-65233e5dbda1" />
+</p>
+
 This example displays a mini dashboard with the following contents:
 
 * Address and little Google Maps overview

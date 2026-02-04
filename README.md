@@ -8,6 +8,10 @@ The Insights feature allows displaying additional contact-related information in
 If enabled and the web page URL is provided, it will be displayed in the contact card as an iframe.
 The web page will receive contact data and can display it in any way according to your needs, or execute actions.
 
+<p align="center">
+  <img width="846" height="821" alt="image" src="https://github.com/user-attachments/assets/801fe1a2-39c7-4ae1-a36e-a6d24c801e75" />
+</p>
+
 ## Typical workflow
 
 ### 1. Decide on the information you want to display
@@ -24,12 +28,12 @@ An AI assistant such as Claude Code, ChatGPT or Gemini can do it easily by looki
 
 To receive contact info the page needs to accept a `message` event from the parent browser window.
 Invoking an action requires sending a message back.
-For more information about event names and message formats, see the Contacts By XPhone documentation or `sdk.md` file in the `docs` folder.
+For more information about event names and message formats, see the Contacts By XPhone documentation or [sdk.md](https://github.com/C4BAG/insights-examples/blob/main/docs/sdk.md) file.
 
 ### 3. Host the web page
 
 Any web hosting will work, as long as it provides a public HTTPS URL.
-For an example on how to host it with Azure Static Web Pages, see the `hosting-azure-static-web-apps.md` file in the `docs` folder.
+For an example on how to host it with Azure Static Web Pages, see the [hosting-azure-static-web-apps.md](https://github.com/C4BAG/insights-examples/blob/main/docs/hosting-azure-static-web-pages.md) file.
 
 ### 4. Enable Insights
 
