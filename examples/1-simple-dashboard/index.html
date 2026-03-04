@@ -171,7 +171,7 @@
         setupLink(
             '#link-google-route',
             getAddressParts(false).join(','),
-            v => `https://www.google.com/maps/dir/${encodeURIComponent(v)}`,
+            v => `https://www.google.com/maps/dir//${encodeURIComponent(v)}`,
             _ => `Route nach ${contact.company.address?.city}`
         )
 
